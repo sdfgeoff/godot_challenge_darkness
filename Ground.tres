@@ -1,0 +1,81 @@
+[gd_resource type="ShaderMaterial" load_steps=6 format=2]
+
+[ext_resource path="res://Concrete/Concrete019_2K_Roughness.png" type="Texture" id=1]
+[ext_resource path="res://Concrete/Concrete019_2K_Normal.png" type="Texture" id=2]
+[ext_resource path="res://Concrete/Concrete019_2K_Displacement.png" type="Texture" id=3]
+[ext_resource path="res://Concrete/Concrete019_2K_Color.png" type="Texture" id=4]
+
+[sub_resource type="Shader" id=6]
+code = "shader_type spatial;
+render_mode blend_mix,depth_draw_opaque,cull_back,diffuse_burley,specular_schlick_ggx;
+uniform sampler2D texture_albedo : hint_albedo;
+uniform float concrete_specular : hint_range(0,1);
+uniform float concrete_metallic : hint_range(0,1);
+uniform float concrete_roughness : hint_range(0,1);
+
+uniform float water_specular : hint_range(0,1);
+uniform float water_metallic : hint_range(0,1);
+uniform float water_roughness : hint_range(0,1);
+
+uniform sampler2D texture_roughness : hint_white;
+uniform sampler2D texture_normal : hint_normal;
+uniform float normal_scale : hint_range(-16,16);
+uniform vec3 uv1_scale;
+uniform vec3 uv1_offset;
+
+uniform float waterlevel : hint_range(0,1) = 0.5 ;
+
+uniform sampler2D texture_depth;
+
+
+void vertex() {
+	UV=UV*uv1_scale.xy+uv1_offset.xy;
+}
+
+
+
+
+void fragment() {
+	vec2 base_uv = UV;
+
+	
+	float depth = texture(texture_depth, base_uv).r;
+	if (depth < waterlevel) {
+		// Puddle
+		ALBEDO = vec3(0.2);
+		ROUGHNESS = water_roughness;
+		METALLIC = water_metallic;
+		NORMALMAP_DEPTH = 0.5;
+		vec3 nor1 = texture(texture_normal,base_uv - vec2(TIME * 0.05, 0.0)).rgb;
+		vec3 nor2 = texture(texture_normal,base_uv).rgb;
+		NORMALMAP = mix(nor1, nor2, 0.5);
+		ROUGHNESS = water_roughness;
+	} else {
+		ALBEDO = texture(texture_albedo,base_uv).rgb;
+		NORMALMAP_DEPTH = normal_scale;
+		float roughness_tex = texture(texture_roughness,base_uv).r;
+		ROUGHNESS = roughness_tex * concrete_roughness;
+		NORMALMAP = texture(texture_normal,base_uv).rgb;
+		METALLIC = concrete_metallic;
+		SPECULAR = concrete_specular;
+		
+	}
+}
+"
+
+[resource]
+shader = SubResource( 6 )
+shader_param/concrete_specular = 0.0
+shader_param/concrete_metallic = 0.0
+shader_param/concrete_roughness = 0.154
+shader_param/water_specular = null
+shader_param/water_metallic = 0.025
+shader_param/water_roughness = 0.043
+shader_param/normal_scale = 1.0
+shader_param/uv1_scale = Vector3( 100, 100, 100 )
+shader_param/uv1_offset = Vector3( 0, 0, 0 )
+shader_param/waterlevel = 0.4
+shader_param/texture_albedo = ExtResource( 4 )
+shader_param/texture_roughness = ExtResource( 1 )
+shader_param/texture_normal = ExtResource( 2 )
+shader_param/texture_depth = ExtResource( 3 )

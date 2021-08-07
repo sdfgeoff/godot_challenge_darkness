@@ -1,0 +1,53 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=2]
+
+[ext_resource path="res://exit2.png" type="Texture" id=1]
+
+[sub_resource type="Shader" id=2]
+code = "shader_type spatial;
+render_mode unshaded;
+
+uniform sampler2D sdf;
+uniform vec4 glow : hint_color;
+uniform float intensity;
+
+
+vec3 neon(float val, vec3 color) {
+	float r = clamp(val, 0.0, 1.0);
+    float r2 = r * r;
+    float r4 = r2 * r2;
+    float r16 = r4 * r4;
+    vec3 c = color;
+    vec3 c2 = pow(color, vec3(4.0)); // A darker, more saturated version of color
+    
+	vec3 outp = vec3(0.0);
+	outp += c2 * r2; // Darker color falloff
+	outp += c * r4; // Specified Color main part
+	outp += vec3(1.0) * r16; // White core
+	return outp;
+}
+
+vec3 hash31(float p){
+	// Taken from https://www.shadertoy.com/view/4djSRW
+	// MIT License...
+	// Copyright (c)2014 David Hoskins
+   vec3 p3 = fract(vec3(p) * vec3(.1031, .1030, .0973));
+   p3 += dot(p3, p3.yzx+33.33);
+   return fract((p3.xxy+p3.yzz)*p3.zyx); 
+}
+
+void fragment() {
+	vec4 tex = texture(sdf, UV);
+	
+	vec3 lights = smoothstep(0.0, 0.002, hash31(TIME));
+	
+	float on = dot(tex.rgb, lights);
+	float light = pow(on, intensity);
+	ALBEDO = neon(light, glow.rgb) * intensity;
+	
+}"
+
+[resource]
+shader = SubResource( 2 )
+shader_param/glow = Color( 1, 0.631373, 0, 1 )
+shader_param/intensity = 2.0
+shader_param/sdf = ExtResource( 1 )
